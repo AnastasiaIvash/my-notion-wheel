@@ -49,21 +49,46 @@ async function fetchTasks() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                filter: { property: "Status", status: { does_not_equal: "Done" } }
+                filter: { 
+                    property: "status", // Проверь, чтобы в Notion было "Статус"
+                    status: { does_not_equal: "Done" } 
+                }
             })
         });
         const data = await response.json();
         
+        const now = new Date();
+
         tasks = data.results.map(page => {
-            const name = page.properties.Name?.title[0]?.plain_text || "Без названия";
-            const priority = page.properties.Priority?.select?.name || "Низкий";
-            let weight = (priority.includes("Высокий") || priority.includes("🔥")) ? 60 : 20;
-            return { name, weight, color: `hsl(${Math.random() * 360}, 70%, 60%)` };
-        }).filter(t => t.name !== "Без названия").slice(0, 12);
+            const name = page.properties["name"]?.title[0]?.plain_text || "Без названия";
+            const deadlineStr = page.properties["deadline"]?.date?.start;
+            
+            // Базовый вес (базовая ширина сектора)
+            let weight = 20; 
+
+            if (deadlineStr) {
+                const deadline = new Date(deadlineStr);
+                const diffTime = deadline - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                // УМНАЯ ЛОГИКА ПРИОРИТЕТА:
+                if (diffDays < 0) weight = 80;      // Просрочено — огромный сектор
+                else if (diffDays === 0) weight = 60; // Сегодня — очень большой
+                else if (diffDays <= 3) weight = 40;  // Ближайшие 3 дня — заметный
+                else weight = 20;                     // Далекие задачи — стандартный
+            }
+
+            return { 
+                name, 
+                weight, 
+                color: `hsl(${Math.random() * 360}, 70%, 60%)` 
+            };
+        }).filter(t => t.name !== "Без названия").slice(0, 15);
 
         drawWheel();
     } catch (e) {
-        alert("Ошибка подключения к Notion. Проверь ID и Токен.");
+        console.error(e);
+        alert("Ошибка! Проверь названия свойств (Название, Дедлайн, Статус).");
     }
 }
 
