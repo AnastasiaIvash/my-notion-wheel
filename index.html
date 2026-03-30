@@ -72,7 +72,7 @@ async function fetchTasks() {
             }
             // Генерируем цвет на основе индекса, чтобы он был постоянным
             return { name, weight, color: `hsl(${(index * 360 / 10) % 360}, 70%, 60%)` };
-        }).slice(0, 12);
+        }).slice(0, 25);
 
         drawWheel();
     } catch (e) { console.error(e); }
